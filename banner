@@ -1852,7 +1852,7 @@
                 const prodNombre = document.getElementById('cuotasProdNombre').innerText;
                 const prodPrecio = document.getElementById('cuotasProdPrecio').innerText;
 
-                let msg = `👋 *¡Hola Génesis Créditos! Quiero solicitar financiamiento:*%0A%0A`;
+                let msg = `👋 *¡Hola Electro Créditos! Quiero solicitar financiamiento:*%0A%0A`;
                 msg += `📦 *Producto:* ${encodeURIComponent(prodNombre)}%0A`;
                 msg += `💵 *Plan / Cuotas:* ${encodeURIComponent(prodPrecio)}%0A%0A`;
                 msg += `📋 *MIS DATOS PARA EVALUAR:*%0A`;
@@ -2030,7 +2030,7 @@
                 document.getElementById('successMonto').innerText = montoFormateado;
 
                 // Configurar botón para avisar por WhatsApp si el cliente lo desea
-                const msgWA = `👋 ¡Hola Génesis Créditos! Acabo de enviar mi solicitud de préstamo personal:%0A` +
+                const msgWA = `👋 ¡Hola Electro Créditos! Acabo de enviar mi solicitud de préstamo personal:%0A` +
                               `💰 Monto: ${encodeURIComponent(montoFormateado)} en ${cuotasSeleccionadas} cuotas%0A` +
                               `👤 Nombre: ${encodeURIComponent(nombre)} (DNI: ${encodeURIComponent(dni)})%0A` +
                               `📍 Domicilio: ${encodeURIComponent(domicilio)}%0A` +
