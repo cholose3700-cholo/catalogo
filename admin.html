@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Admin — Catalogo</title>
+    <title>Admin — Génesis Electrodomésticos</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
@@ -332,7 +332,7 @@
 <body>
 
     <div class="container">
-        <h1>⚡ Admin — Catalogo</h1>
+        <h1>⚡ Admin — Génesis Electrodomésticos</h1>
 
         <div class="topRow">
             <div class="git-config">
@@ -448,7 +448,7 @@
 
         if (host.includes(".github.io")) {
             USERNAME = host.split(".")[0];
-            REPO = pathParts[1] || "";
+            REPO = pathParts[1] || "catalogo";
         }
 
         document.getElementById('repoDisplay').innerText = `${USERNAME} / ${REPO}`;
@@ -490,6 +490,8 @@
                     group.style.display = 'flex';
                     btn.innerHTML = '🔓 Propietario Activo';
                     sessionStorage.setItem('admin_unlocked', 'true');
+                } else if (code !== null) {
+                    alert("Código incorrecto.");
                 }
             }
         }
@@ -534,11 +536,12 @@
         }
 
         function getImgUrl(path) {
-            if (!path) return '';
+            if (!path) return 'https://via.placeholder.com/60?text=Foto';
             if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:') || path.startsWith('blob:')) {
                 return path;
             }
-            return `https://raw.githubusercontent.com/${USERNAME}/${REPO}/${BRANCH}/${path}`;
+            const clean = path.replace(/^(\.\/|\/)/, '');
+            return `./${clean}`;
         }
 
         async function procesarYSubirImagen(file) {
@@ -546,7 +549,6 @@
             const token = getToken();
             if (!token) { showToast("Primero ingresá y guardá tu Token de GitHub", "err"); return; }
 
-            // Mostrar preview local inmediato mediante un URL de objeto
             const tempUrl = URL.createObjectURL(file);
             const img = document.getElementById('preview');
             img.src = tempUrl;
@@ -570,7 +572,6 @@
                 document.getElementById("imagen").value = pathGitHub;
                 showToast("¡Foto subida con éxito!", "ok");
             } catch (err) {
-                // Si falla la subida, ocultamos el preview temporal
                 img.style.display = 'none';
                 img.src = '';
                 showToast("Error al subir foto: " + (err.message || err), "err");
@@ -589,12 +590,20 @@
             });
         }
 
-        function sanitizePrice(v) { return String(v || '').trim(); }
-        function findIndexById(id) { return productos.findIndex(p => p.id === id); }
-        function generateNextProdId() {
+        function sanitizePrice(val) {
+            if (val === undefined || val === null) return '$0';
+            val = val.toString().trim();
+            return val.includes('$') ? val : '$' + val;
+        }
+
+        function findIndexById(id) {
+            return productos.findIndex(p => p.id === id);
+        }
+
+        function generateNextId() {
             let max = 0;
             productos.forEach(p => {
-                const n = parseInt(String(p.id || '').replace('prod', ''), 10);
+                const n = parseInt((p.id || '').replace(/\D/g, ''), 10);
                 if (!isNaN(n) && n > max) max = n;
             });
             return 'prod' + String(max + 1).padStart(4, '0');
@@ -602,8 +611,21 @@
 
         async function loadProducts() {
             try {
-                const res = await fetch(`https://raw.githubusercontent.com/${USERNAME}/${REPO}/${BRANCH}/${MAIN_JSON}?t=${Date.now()}`);
-                if (!res.ok) throw new Error('Error al cargar productos');
+                let res;
+                const sources = [
+                    `./${MAIN_JSON}?t=${Date.now()}`,
+                    `${MAIN_JSON}?t=${Date.now()}`,
+                    `https://raw.githubusercontent.com/${USERNAME}/${REPO}/${BRANCH}/${MAIN_JSON}?t=${Date.now()}`
+                ];
+
+                for (const url of sources) {
+                    try {
+                        res = await fetch(url);
+                        if (res && res.ok) break;
+                    } catch (e) {}
+                }
+
+                if (!res || !res.ok) throw new Error('Error al cargar productos');
                 productos = await res.json();
                 if (!Array.isArray(productos)) productos = [];
                 render(productos);
@@ -611,7 +633,7 @@
                 const tSaved = getToken();
                 if (tSaved) document.getElementById('token').value = tSaved;
             } catch (e) {
-                console.warn(e);
+                console.warn("Error cargando productos:", e);
             }
         }
 
@@ -656,23 +678,40 @@
             if (f.style.display === 'block') f.style.display = 'none';
             else {
                 f.style.display = 'block';
+                f.reset();
                 document.getElementById('editId').value = '';
-                document.getElementById('form').reset();
+                document.getElementById('imagen').value = '';
                 document.getElementById('preview').style.display = 'none';
+                document.getElementById('formTitle').innerText = 'Agregar Nuevo Electrodoméstico';
             }
         }
 
-        function cancelForm() { document.getElementById('form').style.display = 'none'; }
-        function previewImage(force = false) {
+        function cancelForm() {
+            document.getElementById('form').style.display = 'none';
+        }
+
+        function loadIntoFormById(id) {
+            const p = productos.find(x => x.id === id);
+            if (!p) return;
+            document.getElementById('editId').value = p.id;
+            document.getElementById('nombre').value = p.nombre || '';
+            document.getElementById('precio').value = p.precio || '';
+            document.getElementById('descripcion').value = p.descripcion || '';
+            document.getElementById('categoria').value = p.categoria || '';
+            document.getElementById('imagen').value = p.imagen || '';
+            document.getElementById('formTitle').innerText = `Editar Producto #${p.id}`;
+            setImagePreview(p.imagen);
+            document.getElementById('form').style.display = 'block';
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+
+        function setImagePreview(url) {
             const img = document.getElementById('preview');
-            const url = document.getElementById('imagen').value.trim();
-            if (!url) { img.style.display = 'none'; return; }
-            
-            // Si ya estamos mostrando un blob local recién subido, no lo sobrescribimos con la ruta de github
-            if (!force && img.src.startsWith('blob:') && img.style.display === 'block' && url.startsWith('img/')) {
+            if (!url) {
+                img.style.display = 'none';
+                img.src = '';
                 return;
             }
-            
             img.src = getImgUrl(url);
             img.onload = () => img.style.display = 'block';
             img.onerror = () => img.style.display = 'none';
@@ -686,34 +725,22 @@
             const imagen = document.getElementById('imagen').value.trim() || 'img/default.jpg';
             const categoria = document.getElementById('categoria').value.trim() || 'General';
 
-            if (!nombre) { showToast("El producto debe tener un nombre", "err"); return; }
-            const newId = id || generateNextProdId();
-            const obj = { id: newId, nombre, precio, descripcion, imagen, categoria };
+            if (!nombre) { showToast("Ingresá al menos el nombre del producto", "err"); return; }
 
             if (id) {
                 const idx = findIndexById(id);
-                if (idx !== -1) productos[idx] = obj;
+                if (idx !== -1) {
+                    productos[idx] = { id, nombre, precio, descripcion, imagen, categoria };
+                    showToast("Producto actualizado en la lista");
+                }
             } else {
-                productos.push(obj);
+                const newId = generateNextId();
+                productos.unshift({ id: newId, nombre, precio, descripcion, imagen, categoria });
+                showToast("Producto agregado a la lista");
             }
 
             render(productos);
-            cancelForm();
-            showToast("Lista actualizada localmente.");
-        }
-
-        function loadIntoFormById(id) {
-            const p = productos.find(x => x.id === id);
-            if (!p) return;
-            document.getElementById('editId').value = p.id;
-            document.getElementById('nombre').value = p.nombre || '';
-            document.getElementById('precio').value = p.precio || '';
-            document.getElementById('descripcion').value = p.descripcion || '';
-            document.getElementById('imagen').value = p.imagen || '';
-            document.getElementById('categoria').value = p.categoria || '';
-            previewImage(true);
-            document.getElementById('form').style.display = 'block';
-            window.scrollTo({ top: 0, behavior: "smooth" });
+            toggleForm();
         }
 
         async function githubPutFile(path, contentString, message, isBase64 = false) {
